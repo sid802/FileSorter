@@ -6,7 +6,7 @@
 #			in it based on their name.
 #
 #			For example, Caste S01E03 gets moved the
-#			a folder named Castle and sub folder Season 1
+#			a folder named 'Castle' and sub folder 'Castle - Season 1'
 #
 #			This script works TV Show from with two different formats:
 #			1) TVSHOW + S(season) + E(episode) (CastleS01E03)
@@ -19,8 +19,7 @@
 
 
 
-import re, os
-import time
+import re, os, shutil, time
 
 def parse_folder(folder_path):
 	files_in_folder = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
@@ -51,15 +50,17 @@ def parse_folder(folder_path):
 			episode = match.group('episode')
 
 			#Filter show name. Turns 'American.Idol.' into 'American Idol'
-			show_filtered = re.sub(r'\s+', ' ', re.sub(r'[\W_]', r' ', name)).strip()
+			show_filtered = filter_show_name(show)
 
 			#creates the target folder by adding show name and season to current folder
-			target_folder = os.path.join(os.path.join(folder_path, show_filtered), "Season {season}".format(season = season))
+			target_folder = os.path.join(os.path.join(folder_path, show_filtered), "{show} - Season {season}".format(show = show_filtered, season = season))
 
 			source_file = os.path.join(folder_path, file)
 
 			move_to_folder(target_folder, source_file)
 
+def filter_show_name(show_name):
+	return re.sub(r'\s+', ' ', re.sub(r'[\W_]', r' ', show_name)).strip()
 
 def move_to_folder(target_folder, source_file):
 	''' If target folder doesnt exist, creates it and then moves the source file to the target folder '''
