@@ -1,3 +1,5 @@
+#ShowSorter
+
 Takes a folder, and sorts all the TV show
 in it based on their name.
 
