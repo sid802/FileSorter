@@ -19,7 +19,7 @@
 
 
 
-import re, os, shutil, time
+import re, os, sys, shutil, time
 
 def parse_folder(folder_path):
 	files_in_folder = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
@@ -33,6 +33,9 @@ def parse_folder(folder_path):
 	#example: Caste 1x06
 	secondPattern = re.compile(r'(?P<show>.*?)(?P<season>\d{1,2})x(?P<episode>\d{1,2})', re.IGNORECASE)
 
+	#example: Castle.106
+	thirdPattern = re.compile(r'(?P<show>.*?)(?P<season>\d+)(?P<episode>\d{2})', re.IGNORECASE)
+
 	for file in files_in_folder:
 
 		#attempt first pattern
@@ -41,6 +44,8 @@ def parse_folder(folder_path):
 		#if failed, attempt second pattern
 		if not match:
 			match = secondPattern.search(file)
+			if not match:
+				match = thirdPattern.search(file)
 
 		#if match is successfull, sort the file
 		if match:
@@ -77,11 +82,21 @@ def move_to_folder(target_folder, source_file):
 	except IOError, e:
 		print "Couldn't put {0} in {1}. Error: {2}".format(source_file, target_folder, e)
 
-
-if __name__ == '__main__':
+def get_folder_path_input():
 	folder_path = raw_input("Enter folder of videos:\n")
 	while not os.path.exists:
 		folder_path = raw_input("Enter folder of videos:\n")
+	return folder_path
+
+if __name__ == '__main__':
+
+	#Checks if the directory we want to sort has been given as an argument
+	#if it hasn't, get it from the user
+	if len(sys.argv) == 1 or not os.path.isdir(sys.argv[1]):
+		folder_path = get_folder_path_input()
+	else:
+		folder_path = sys.argv[1]
+
 	start = time.time()
 	parse_folder(folder_path)
 	print 'This took {0} seconds'.format(time.time() - start)
