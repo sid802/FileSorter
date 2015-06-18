@@ -28,13 +28,13 @@ def parse_folder(folder_path):
 	#Patterns to understand file:
 
 	#example: Caste.S01E06
-	firstPattern = re.compile(r'(?P<show>.*?)S(?P<season>\d{2})E(?P<episode>\d{2})', re.IGNORECASE)
+	firstPattern = re.compile(r'(?P<show>.*?)((\b|\D)\d{4}(\b|\D))?S(?P<season>\d{2})E(?P<episode>\d{2})', re.IGNORECASE)
 
 	#example: Caste 1x06
-	secondPattern = re.compile(r'(?P<show>.*?)(?P<season>\d{1,2})x(?P<episode>\d{1,2})', re.IGNORECASE)
+	secondPattern = re.compile(r'(?P<show>.*?)((\b|\D)\d{4}(\b|\D))?(?P<season>\d{1,2})x(?P<episode>\d{1,2})', re.IGNORECASE)
 
 	#example: Castle.106
-	thirdPattern = re.compile(r'(?P<show>.*?)(?P<season>\d+)(?P<episode>\d{2})', re.IGNORECASE)
+	thirdPattern = re.compile(r'^(?P<show>.*?)((\b|\D)\d{4}(\b|\D))?.*?(?P<season>\d+)(?P<episode>\d{2})(\b|\D)', re.IGNORECASE)
 
 	for file in files_in_folder:
 
