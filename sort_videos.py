@@ -25,7 +25,7 @@ def parse_folder(folder_path):
 	files_in_folder = [file for file in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, file))]
 	
 
-	#Patterns to understand file:
+	#Patterns to understand file: the ((\b|\D)\d{4}(\b|\D))? part is if the name contains the year it came out
 
 	#example: Caste.S01E06
 	firstPattern = re.compile(r'(?P<show>.*?)((\b|\D)\d{4}(\b|\D))?S(?P<season>\d{2})E(?P<episode>\d{2})', re.IGNORECASE)
@@ -34,7 +34,7 @@ def parse_folder(folder_path):
 	secondPattern = re.compile(r'(?P<show>.*?)((\b|\D)\d{4}(\b|\D))?(?P<season>\d{1,2})x(?P<episode>\d{1,2})', re.IGNORECASE)
 
 	#example: Castle.106
-	thirdPattern = re.compile(r'^(?P<show>.*?)((\b|\D)\d{4}(\b|\D))?.*?(?P<season>\d+)(?P<episode>\d{2})(\b|\D)', re.IGNORECASE)
+	thirdPattern = re.compile(r'^(?P<show>.*?)((\b|\D)\d{4}(\b|\D))?(?P<season>\d+)(?P<episode>\d{2})(\b|\D)', re.IGNORECASE)
 
 	for file in files_in_folder:
 
