@@ -4,6 +4,8 @@ import re, os
 from FSSorter import Sorter
 from datetime import datetime
 from glob import glob
+from datetime_truncate import truncate
+from itertools import groupby
 
 class PictureInfo(object):
     """
@@ -15,6 +17,9 @@ class PictureInfo(object):
         self.path = path  # String
         self.timestamp = timestamp  # datetime
 
+    def __repr__(self):
+        return unicode(self.path)
+
 
 class PictureSorter(Sorter):
     """
@@ -24,6 +29,7 @@ class PictureSorter(Sorter):
     # Pattern matching file names with full timestamp in format yyyy.dd.mm.hh.mm.dd (Dot can be replaced by any char)
     full_timestamp = re.compile(r'(^|\D)(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})\D?(?P<hour>\d{2})\D?(?P<minute>\d{2})\D?(?P<second>\d{2})(\D|$)')
     date_stamp = re.compile(r'(^|\D)(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})(\D|$)')
+    clean_timestamp = re.compile(r'(?P<ts>.*?)[\s0:]*$')
 
     def __init__(self, base_directory, destination_directory='.', sub_dirs=False, group_by='day'):
         """
@@ -44,23 +50,70 @@ class PictureSorter(Sorter):
         picture_infos = list()
         for picture_path in picture_paths:
             timestamp = self.get_timestamp_from_picture(picture_path)
-            picture_infos.append(PictureInfo(picture_path, timestamp))
+            if timestamp is not None:
+                picture_infos.append(PictureInfo(picture_path, timestamp))
 
         result_dict = self._redistribute(picture_infos)
         return result_dict
 
 
-    def _redistribute(self, picture_infos, destination_directory):
+    def _redistribute(self, picture_infos):
         """
         :param picture_infos: List of PictureInfos'
-        :param destination_directory: Base directory where we want the new folders to be created
         :return: Dictionary - files who were successfully moved and failed
                  Keys are: success / failure
         This method redistributes the pictures based on their timestamp
         """
 
+        return_dict = {}
+        return_dict['success'] = list()
+        return_dict['failure'] = list()
 
+        for k, g in groupby(picture_infos, lambda picture_info: truncate(picture_info.timestamp, self.group_by)):
+            dir_name = self.stringify_timestamp(k)
+            picture_infos_to_transfer = list(g)
+            current_results = self._move_files(dir_name, picture_infos_to_transfer)
+            return_dict['success'] += current_results['success']
+            return_dict['failure'] += current_results['success']
 
+        return return_dict
+
+    def _move_files(self, folder_name, picture_infos):
+        """
+        :param folder_name: string - Folder to create in target directory
+        :param picture_infos: List of PictureInfo's to move
+        :return: Dictionary - files who were successfully moved and failed
+                 Keys are: success / failure
+        """
+
+        return_dict = {}
+        return_dict['success'] = list()
+        return_dict['failure'] = list()
+
+        target_dir = os.path.join(self.base_directory, folder_name)
+        if not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        for picture_info in picture_infos:
+            dirname, filename = os.path.split(picture_info.path)
+            try:
+                #os.rename(picture_info.path, os.path.join(target_dir, filename))
+                print "Moving {0} to {1}".format(picture_info.path, os.path.join(target_dir, filename))
+                return_dict['success'].append((picture_info.path, target_dir))
+            except Exception as e:
+                return_dict['failure'].append((picture_info.path, target_dir, e.message))
+
+        return return_dict
+
+    @classmethod
+    def stringify_timestamp(cls, timestamp):
+        """
+        :param timestamp: datetime - timestamp
+        :return: string - Removed trailing zeroes after trunc
+        """
+        match = cls.clean_timestamp.search(str(timestamp))
+        if not match:
+            return str(timestamp)
+        return match.group('ts')
 
     @classmethod
     def get_timestamp_from_picture(cls, picture_path):
@@ -93,3 +146,7 @@ class PictureSorter(Sorter):
             match_dict[k] = int(v)
 
         return datetime(**match_dict)
+
+if __name__ == '__main__':
+    pic_sorter = PictureSorter(r'C:\Users\Sid\Documents\Android\Photos', group_by='month')
+    pic_sorter.sort()
