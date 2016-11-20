@@ -4,7 +4,7 @@ import re, os
 from FSSorter import Sorter
 from datetime import datetime
 from glob import glob
-from datetime_truncate import truncate
+import TimestampTrunc
 from itertools import groupby
 
 class PictureInfo(object):
@@ -29,7 +29,7 @@ class PictureSorter(Sorter):
     # Pattern matching file names with full timestamp in format yyyy.dd.mm.hh.mm.dd (Dot can be replaced by any char)
     full_timestamp = re.compile(r'(^|\D)(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})\D?(?P<hour>\d{2})\D?(?P<minute>\d{2})\D?(?P<second>\d{2})(\D|$)')
     date_stamp = re.compile(r'(^|\D)(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})(\D|$)')
-    clean_timestamp = re.compile(r'(?P<ts>.*?)[\s0:]*$')
+    clean_timestamp = re.compile(r'(?P<ts>.*?)(\s|00|:)*$')
 
     def __init__(self, base_directory, destination_directory='.', sub_dirs=False, group_by='day'):
         """
@@ -46,7 +46,8 @@ class PictureSorter(Sorter):
                  Keys are: success / failure
         """
 
-        picture_paths = glob(os.path.join(self.base_directory, '*'))
+        picture_paths = [path for path in glob(os.path.join(self.base_directory, '*')) if os.path.isfile(path)]
+
         picture_infos = list()
         for picture_path in picture_paths:
             timestamp = self.get_timestamp_from_picture(picture_path)
@@ -69,7 +70,9 @@ class PictureSorter(Sorter):
         return_dict['success'] = list()
         return_dict['failure'] = list()
 
-        for k, g in groupby(picture_infos, lambda picture_info: truncate(picture_info.timestamp, self.group_by)):
+        truncer = TimestampTrunc.TimestampTrunc(self.group_by)
+
+        for k, g in groupby(picture_infos, lambda picture_info: truncer.trunc(picture_info.timestamp)):
             dir_name = self.stringify_timestamp(k)
             picture_infos_to_transfer = list(g)
             current_results = self._move_files(dir_name, picture_infos_to_transfer)
@@ -96,8 +99,8 @@ class PictureSorter(Sorter):
         for picture_info in picture_infos:
             dirname, filename = os.path.split(picture_info.path)
             try:
-                #os.rename(picture_info.path, os.path.join(target_dir, filename))
-                print "Moving {0} to {1}".format(picture_info.path, os.path.join(target_dir, filename))
+                os.rename(picture_info.path, os.path.join(target_dir, filename))
+                #print "Moving {0} to {1}".format(picture_info.path, os.path.join(target_dir, filename))
                 return_dict['success'].append((picture_info.path, target_dir))
             except Exception as e:
                 return_dict['failure'].append((picture_info.path, target_dir, e.message))
@@ -149,4 +152,8 @@ class PictureSorter(Sorter):
 
 if __name__ == '__main__':
     pic_sorter = PictureSorter(r'C:\Users\Sid\Documents\Android\Photos', group_by='month')
-    pic_sorter.sort()
+    results = pic_sorter.sort()
+
+    print "Failed to move:"
+    for failure in results['failure']:
+        print "`{0}` to dir `{1}`. Error: {2}".format(failure[0], failure[1], failure[2])
