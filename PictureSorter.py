@@ -4,7 +4,7 @@ import re, os
 from FSSorter import Sorter
 from datetime import datetime
 from glob import glob
-import TimestampTrunc
+from TimestampTrunc import TimestampTrunc
 from itertools import groupby
 
 class PictureInfo(object):
@@ -29,7 +29,6 @@ class PictureSorter(Sorter):
     # Pattern matching file names with full timestamp in format yyyy.dd.mm.hh.mm.dd (Dot can be replaced by any char)
     full_timestamp = re.compile(r'(^|\D)(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})\D?(?P<hour>\d{2})\D?(?P<minute>\d{2})\D?(?P<second>\d{2})(\D|$)')
     date_stamp = re.compile(r'(^|\D)(?P<year>\d{4})\D?(?P<month>\d{2})\D?(?P<day>\d{2})(\D|$)')
-    clean_timestamp = re.compile(r'(?P<ts>.*?)(\s|00|:)*$')
 
     def __init__(self, base_directory, destination_directory='.', sub_dirs=False, group_by='day'):
         """
@@ -70,10 +69,10 @@ class PictureSorter(Sorter):
         return_dict['success'] = list()
         return_dict['failure'] = list()
 
-        truncer = TimestampTrunc.TimestampTrunc(self.group_by)
+        truncer = TimestampTrunc(self.group_by)
 
         for k, g in groupby(picture_infos, lambda picture_info: truncer.trunc(picture_info.timestamp)):
-            dir_name = self.stringify_timestamp(k)
+            dir_name = truncer.to_trimmed_string(k)
             picture_infos_to_transfer = list(g)
             current_results = self._move_files(dir_name, picture_infos_to_transfer)
             return_dict['success'] += current_results['success']
@@ -106,17 +105,6 @@ class PictureSorter(Sorter):
                 return_dict['failure'].append((picture_info.path, target_dir, e.message))
 
         return return_dict
-
-    @classmethod
-    def stringify_timestamp(cls, timestamp):
-        """
-        :param timestamp: datetime - timestamp
-        :return: string - Removed trailing zeroes after trunc
-        """
-        match = cls.clean_timestamp.search(str(timestamp))
-        if not match:
-            return str(timestamp)
-        return match.group('ts')
 
     @classmethod
     def get_timestamp_from_picture(cls, picture_path):
